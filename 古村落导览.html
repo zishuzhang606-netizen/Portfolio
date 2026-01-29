@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>古村落导览 - 明代山水画空间设计</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Framer Motion -->
+    <script src="https://cdn.jsdelivr.net/npm/framer-motion@11/dist/framer-motion.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Ma+Shan+Zheng&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Serif SC', serif;
+            background: #fafaf9;
+            overflow-x: hidden;
+        }
+        
+        .title-font {
+            font-family: 'Ma Shan Zheng', cursive;
+        }
+        
+        .app-container {
+            max-width: 1920px;
+            margin: 0 auto;
+            background: white;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(1.1);
+            }
+        }
+        
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        .image-container {
+            position: relative;
+            overflow: hidden;
+            background: white;
+        }
+        
+        .image-container img {
+            transition: transform 0.3s ease;
+        }
+        
+        .image-container:hover img {
+            transform: scale(1.05);
+        }
+        
+        /* 图片加载失败时显示占位符 */
+        img {
+            background: linear-gradient(135deg, #f5f5f4 0%, #e7e5e4 100%);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel" data-type="module">
+        const { useState, useEffect } = React;
+        const { motion, AnimatePresence } = Motion;
+        
+        // ====== 图片路径配置区域 ======
+        // 文件结构：
+        // D:\ceshitrae\古村落导览\
+        //   ├── 古村落导览.html (此文件)
+        //   └── images\
+        //       ├── 图片3.png  (地图)
+        //       ├── 图片4.png  (梭罗秘境)
+        //       ├── 图片5.png
+        //       └── ...
+        
+        const IMAGES = {
+            // 地图背景
+            mapBackground: './images/图片3.png',
+            
+            // 梭罗秘境 - 3张（景点图2 + 设计图1）
+            shaluoImages: [
+                './images/图片4.png',
+                './images/图片5.png'
+            ],
+            shaluoDesign: [
+                './images/图片6.png'
+            ],
+            
+            // 悦步信行 - 2张（景点图 = 设计图）
+            yuebuImages: [
+                './images/图片7.png',
+                './images/图片8.png'
+            ],
+            yuebuDesign: [
+                './images/图片7.png',
+                './images/图片8.png'
+            ],
+            
+            // 长檐驻亭 - 2张（景点图 = 设计图）
+            changyanImages: [
+                './images/图片9.png',
+                './images/图片10.png'
+            ],
+            changyanDesign: [
+                './images/图片9.png',
+                './images/图片10.png'
+            ],
+            
+            // 花田相映 - 2张（景点图 = 设计图）
+            huatianImages: [
+                './images/图片11.png',
+                './images/图片12.png'
+            ],
+            huatianDesign: [
+                './images/图片11.png',
+                './images/图片12.png'
+            ],
+            
+            // 闲阔拾阶 - 2张（景点图 = 设计图）
+            xiankuoImages: [
+                './images/图片13.png',
+                './images/图片14.png'
+            ],
+            xiankuoDesign: [
+                './images/图片13.png',
+                './images/图片14.png'
+            ]
+        };
+        // ====== 图片路径配置区域结束 ======
+        
+        const sitesData = [
+            { id: 'shaluo', name: '梭罗秘境', x: '78%', y: '30%', color: 'bg-orange-500' },
+            { id: 'yuebu', name: '悦步信行', x: '65%', y: '45%', color: 'bg-green-500' },
+            { id: 'changyan', name: '长檐驻亭', x: '50%', y: '50%', color: 'bg-pink-500' },
+            { id: 'huatian', name: '花田相映', x: '35%', y: '55%', color: 'bg-blue-500' },
+            { id: 'xiankuo', name: '闲阔拾阶', x: '18%', y: '60%', color: 'bg-red-500' },
+        ];
+        
+        const siteDetails = {
+            shaluo: {
+                name: '梭罗秘境',
+                description: '隐藏在村落东侧的幽静空间，融合现代设计与传统意境，营造出独特的禅意体验场所。',
+                features: ['冥想空间', '茶室体验', '艺术展览', '静谧花园'],
+                visitTime: '建议60分钟',
+                capacity: '可容纳30-40人',
+                images: IMAGES.shaluoImages,
+                designImages: IMAGES.shaluoDesign,
+                highlights: [
+                    '极简主义设计美学',
+                    '现代与传统融合',
+                    '独特的光影体验',
+                    '宁静的冥想氛围'
+                ],
+                history: '梭罗秘境得名于美国思想家梭罗的《瓦尔登湖》，体现了回归自然、简朴生活的哲学理念。空间设计采用现代极简风格，通过光影变化和空间布局，创造出静谧深远的精神场所。',
+                color: 'from-orange-50 to-amber-50'
+            },
+            yuebu: {
+                name: '悦步信行',
+                description: '连接各景点的景观步道系统，在行走中感受山水之美，体验自然与人文的和谐共生。',
+                features: ['观景步道', '休憩平台', '景观小品', '植物科普'],
+                visitTime: '建议30分钟',
+                capacity: '步道开放式',
+                images: IMAGES.yuebuImages,
+                designImages: IMAGES.yuebuDesign,
+                highlights: [
+                    '蜿蜒曲折的步道设计',
+                    '多处观景平台',
+                    '四季景观变化',
+                    '人与自然的对话'
+                ],
+                history: '悦步信行的步道系统遵循传统园林"移步换景"的设计理念，将现代景观与传统山水画意境相结合。步道沿途设置多个休憩点，让游客在漫步中体会山水空间的层次美感。',
+                color: 'from-green-50 to-emerald-50'
+            },
+            changyan: {
+                name: '长檐驻亭',
+                description: '传统亭台建筑与现代休憩功能的完美结合，飞檐翘角下是游客小憩观景的理想之所。',
+                features: ['传统建筑', '观景平台', '休息座椅', '文化展示'],
+                visitTime: '建议40分钟',
+                capacity: '可容纳50-60人',
+                images: IMAGES.changyanImages,
+                designImages: IMAGES.changyanDesign,
+                highlights: [
+                    '经典的飞檐造型',
+                    '绝佳的观景视野',
+                    '传统建筑工艺',
+                    '舒适的休憩环境'
+                ],
+                history: '长檐驻亭采用传统中式亭台建筑形制，飞檐斗拱展现了精湛的木作技艺。亭内空间开敞通透，四面皆可观景，体现了"亭者，停也"的传统建筑哲学。',
+                color: 'from-pink-50 to-rose-50'
+            },
+            huatian: {
+                name: '花田相映',
+                description: '四季花卉与田园景观交织的浪漫   间，展现乡村自然之美与农耕文化的诗意结合。',
+                features: ['四季花田', '农耕体验', '摄影基地', '自然教育'],
+                visitTime: '建议50分钟',
+                capacity: '开放式空间',
+                images: IMAGES.huatianImages,
+                designImages: IMAGES.huatianDesign,
+                highlights: [
+                    '四季花卉轮换种植',
+                    '色彩斑斓的田园景观',
+                    '农耕文化体验',
+                    '绝佳的摄影场景'
+                ],
+                history: '花田相映区域原为村落的传统农田，通过景观化改造，在保留农耕功能的同时，种植了四季观赏花卉。春有油菜花海，夏有向日葵田，秋有波斯菊，冬有梅花，展现了人与自然和谐共生的美好画面。',
+                color: 'from-blue-50 to-cyan-50'
+            },
+            xiankuo: {
+                name: '闲阔拾阶',
+                description: '西侧入口的宽阔台阶空间，层层递进的设计营造出仪式感与开阔感并存的迎宾氛围。',
+                features: ['台阶广场', '入口景观', '集散空间', '公共活动'],
+                visitTime: '建议30分钟',
+                capacity: '可容纳100-150人',
+                images: IMAGES.xiankuoImages,
+                designImages: IMAGES.xiankuoDesign,
+                highlights: [
+                    '宽敞的台阶广场',
+                    '层次分明的空间',
+                    '良好的集散功能',
+                    '公共活动场所'
+                ],
+                history: '闲阔拾阶作为村落的西侧主入口，采用传统的台阶式广场设计，既满足了地形高差的需求，又创造出层次丰富的空间体验。宽阔的台阶可作为集散空间，也可举办各类公共活动，体现了"闲适宽阔"的设计理念。',
+                color: 'from-red-50 to-orange-50'
+            }
+        };
+        
+        // Icon组件
+        const ChevronRight = () => (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+        );
+        
+        const ArrowLeft = () => (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+        );
+        
+        const MapPin = ({ className }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+        );
+        
+        const Clock = ({ className }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        );
+        
+        const Users = ({ className }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+        );
+        
+        const Camera = ({ className }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+        );
+        
+        const Maximize2 = ({ className }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+            </svg>
+        );
+        
+        const X = ({ className }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        );
+        
+        // 首页组件
+        function HomePage({ onEnter }) {
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-orange-50 flex items-center justify-center relative overflow-hidden">
+                    <div className="absolute inset-0 opacity-10">
+                        <div className="absolute top-10 left-10 w-64 h-64 bg-orange-300 rounded-full blur-3xl"></div>
+                        <div className="absolute bottom-10 right-10 w-96 h-96 bg-amber-300 rounded-full blur-3xl"></div>
+                    </div>
+                    
+                    <motion.div 
+                        className="text-center z-10 px-4"
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 1 }}
+                    >
+                        <motion.h1 
+                            className="text-7xl md:text-9xl mb-6 text-stone-800 title-font"
+                            initial={{ scale: 0.9 }}
+                            animate={{ scale: 1 }}
+                            transition={{ duration: 0.8 }}
+                        >
+                            古村落导览
+                        </motion.h1>
+                        
+                        <motion.p 
+                            className="text-2xl md:text-3xl text-stone-600 mb-4"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.5, duration: 0.8 }}
+                        >
+                            明代山水画空间设计
+                        </motion.p>
+                        
+                        <motion.p 
+                            className="text-lg md:text-xl text-stone-500 mb-12"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.7, duration: 0.8 }}
+                        >
+                            探索五个独特景点，体验传统与现代的和谐交融
+                        </motion.p>
+                        
+                        <motion.button
+                            onClick={onEnter}
+                            className="group px-12 py-5 bg-gradient-to-r from-orange-500 to-amber-600 text-white text-xl rounded-full hover:from-orange-600 hover:to-amber-700 transition-all duration-300 shadow-2xl hover:shadow-orange-300 flex items-center gap-3 mx-auto"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 1, duration: 0.8 }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                        >
+                            <span>开始探索</span>
+                            <ChevronRight />
+                        </motion.button>
+                        
+                        <motion.div 
+                            className="mt-16 flex flex-wrap justify-center gap-4"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 1.3, duration: 0.8 }}
+                        >
+                            {sitesData.map((site, index) => (
+                                <motion.div
+                                    key={site.id}
+                                    className="px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full text-stone-700 shadow-md"
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: 1.3 + index * 0.1 }}
+                                >
+                                    {site.name}
+                                </motion.div>
+                            ))}
+                        </motion.div>
+                    </motion.div>
+                </div>
+            );
+        }
+        
+        // 地图页面组件
+        function MapPage({ onSiteClick }) {
+            return (
+                <div className="min-h-screen bg-stone-50">
+                    <motion.div 
+                        className="bg-gradient-to-r from-orange-500 to-amber-600 text-white py-6 shadow-lg"
+                        initial={{ y: -100 }}
+                        animate={{ y: 0 }}
+                        transition={{ duration: 0.6 }}
+                    >
+                        <div className="container mx-auto px-4">
+                            <h1 className="text-4xl title-font mb-2">古村落导览地图</h1>
+                            <p className="text-lg text-white/90">点击地图上的标记点查看景点详情</p>
+                        </div>
+                    </motion.div>
+                    
+                    <div className="container mx-auto px-4 py-12">
+                        <motion.div 
+                            className="relative w-full max-w-6xl mx-auto aspect-[16/10] bg-gradient-to-br from-green-100 to-blue-100 rounded-3xl shadow-2xl overflow-hidden"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.8 }}
+                        >
+                            <div className="absolute inset-0">
+                                <img 
+                                    src={IMAGES.mapBackground}
+                                    alt="古村落地图"
+                                    className="w-full h-full object-cover"
+                                    style={{ opacity: 0.9 }}
+                                    onError={(e) => {
+                                        e.target.style.display = 'none';
+                                        e.target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center text-stone-500 text-xl">地图图片未找到<br/>请将地图保存为 images/map.png</div>';
+                                    }}
+                                />
+                            </div>
+                            
+                            {sitesData.map((site, index) => (
+                                <motion.div
+                                    key={site.id}
+                                    className="absolute cursor-pointer"
+                                    style={{ left: site.x, top: site.y }}
+                                    initial={{ opacity: 0, scale: 0 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: 0.3 + index * 0.2, duration: 0.5 }}
+                                    whileHover={{ scale: 1.2 }}
+                                    onClick={() => onSiteClick(site.id)}
+                                >
+                                    <div className={`absolute -inset-4 ${site.color} rounded-full opacity-30 pulse`}></div>
+                                    <div className={`w-8 h-8 ${site.color} rounded-full shadow-lg flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2`}>
+                                        <div className="w-3 h-3 bg-white rounded-full"></div>
+                                    </div>
+                                    <motion.div 
+                                        className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white px-4 py-2 rounded-full shadow-lg whitespace-nowrap"
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.5 + index * 0.2 }}
+                                    >
+                                        <span className="text-sm font-medium text-stone-700">{site.name}</span>
+                                    </motion.div>
+                                </motion.div>
+                            ))}
+                        </motion.div>
+                        
+                        <motion.div 
+                            className="mt-12 grid grid-cols-1 md:grid-cols-5 gap-4 max-w-6xl mx-auto"
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 1.2, duration: 0.6 }}
+                        >
+                            {sitesData.map((site, index) => (
+                                <motion.button
+                                    key={site.id}
+                                    onClick={() => onSiteClick(site.id)}
+                                    className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 text-center group"
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 1.2 + index * 0.1 }}
+                                    whileHover={{ y: -5 }}
+                                >
+                                    <div className={`w-12 h-12 ${site.color} rounded-full mx-auto mb-3 group-hover:scale-110 transition-transform`}></div>
+                                    <h3 className="text-lg font-medium text-stone-800">{site.name}</h3>
+                                </motion.button>
+                            ))}
+                        </motion.div>
+                    </div>
+                </div>
+            );
+        }
+        
+        // 景点详情页面组件
+        function SiteDetail({ siteId, onBack }) {
+            const site = siteDetails[siteId];
+            const [isImageExpanded, setIsImageExpanded] = useState(false);
+            const [currentExpandedImage, setCurrentExpandedImage] = useState('');
+            
+            if (!site) return null;
+            
+            return (
+                <div className="min-h-screen bg-stone-50">
+                    <motion.div 
+                        className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm"
+                        initial={{ y: -100 }}
+                        animate={{ y: 0 }}
+                        transition={{ duration: 0.5 }}
+                    >
+                        <div className="container mx-auto px-6 py-5 flex items-center gap-4">
+                            <button
+                                onClick={onBack}
+                                className="flex items-center gap-2 text-stone-700 hover:text-stone-900 transition-colors text-lg"
+                            >
+                                <ArrowLeft />
+                                <span>返回地图</span>
+                            </button>
+                        </div>
+                    </motion.div>
+                    
+                    <div className="container mx-auto px-6 py-12 max-w-6xl">
+                        <motion.div
+                            className="mb-10"
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6 }}
+                        >
+                            <h1 className="text-6xl mb-6 text-stone-800 title-font">{site.name}</h1>
+                            <p className="text-2xl text-stone-600 leading-relaxed">{site.description}</p>
+                        </motion.div>
+                        
+                        <motion.div
+                            className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2, duration: 0.6 }}
+                        >
+                            <div className="bg-white rounded-2xl p-8 shadow-lg flex items-start gap-4">
+                                <Clock className="w-8 h-8 text-blue-500 flex-shrink-0 mt-1" />
+                                <div>
+                                    <h3 className="text-base text-stone-500 mb-2">游览时间</h3>
+                                    <p className="text-xl text-stone-800 font-medium">{site.visitTime}</p>
+                                </div>
+                            </div>
+                            
+                            <div className="bg-white rounded-2xl p-8 shadow-lg flex items-start gap-4">
+                                <Users className="w-8 h-8 text-green-500 flex-shrink-0 mt-1" />
+                                <div>
+                                    <h3 className="text-base text-stone-500 mb-2">容纳人数</h3>
+                                    <p className="text-xl text-stone-800 font-medium">{site.capacity}</p>
+                                </div>
+                            </div>
+                            
+                            <div className="bg-white rounded-2xl p-8 shadow-lg flex items-start gap-4">
+                                <MapPin className="w-8 h-8 text-red-500 flex-shrink-0 mt-1" />
+                                <div>
+                                    <h3 className="text-base text-stone-500 mb-2">景点编号</h3>
+                                    <p className="text-xl text-stone-800 font-medium uppercase">{siteId}</p>
+                                </div>
+                            </div>
+                        </motion.div>
+                        
+                        <motion.div
+                            className="mb-14"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.4, duration: 0.6 }}
+                        >
+                            <div className="flex items-center gap-3 mb-6">
+                                <Camera className="w-7 h-7 text-stone-600" />
+                                <h2 className="text-3xl text-stone-800 font-medium">景点图片</h2>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {site.images.map((image, index) => (
+                                    <motion.div
+                                        key={index}
+                                        className="image-container rounded-2xl overflow-hidden shadow-xl"
+                                        whileHover={{ scale: 1.02 }}
+                                        transition={{ duration: 0.3 }}
+                                    >
+                                        <img 
+                                            src={image} 
+                                            alt={`${site.name} ${index + 1}`} 
+                                            className="w-full h-96 object-cover"
+                                        />
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </motion.div>
+                        
+                        <motion.div
+                            className="bg-white rounded-3xl p-10 shadow-xl mb-10"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.5, duration: 0.6 }}
+                        >
+                            <h2 className="text-3xl mb-6 text-stone-800 font-medium">历史渊源</h2>
+                            <p className="text-xl text-stone-600 leading-relaxed">{site.history}</p>
+                        </motion.div>
+                        
+                        <motion.div
+                            className={`bg-gradient-to-br ${site.color} rounded-3xl p-10 shadow-xl mb-10`}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.6, duration: 0.6 }}
+                        >
+                            <h2 className="text-3xl mb-8 text-stone-800 font-medium">特色亮点</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                {site.highlights.map((highlight, index) => (
+                                    <motion.div
+                                        key={index}
+                                        className="flex items-center gap-4 bg-white/80 rounded-xl p-5"
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: 0.7 + index * 0.1 }}
+                                    >
+                                        <div className="w-3 h-3 bg-amber-500 rounded-full flex-shrink-0"></div>
+                                        <p className="text-lg text-stone-700">{highlight}</p>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </motion.div>
+                        
+                        <motion.div
+                            className="bg-white rounded-3xl p-10 shadow-xl mb-10"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.8, duration: 0.6 }}
+                        >
+                            <h2 className="text-3xl mb-8 text-stone-800 font-medium">功能设施</h2>
+                            <div className="flex flex-wrap gap-4">
+                                {site.features.map((feature, index) => (
+                                    <motion.span
+                                        key={index}
+                                        className="px-6 py-3 bg-stone-100 text-stone-700 rounded-full text-lg"
+                                        initial={{ opacity: 0, scale: 0.8 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ delay: 0.9 + index * 0.05 }}
+                                    >
+                                        {feature}
+                                    </motion.span>
+                                ))}
+                            </div>
+                        </motion.div>
+                        
+                        {site.designImages && (
+                            <motion.div
+                                className="mb-10"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 1.0, duration: 0.6 }}
+                            >
+                                <div className={`bg-gradient-to-br ${site.color} rounded-3xl p-10 shadow-xl`}>
+                                    <h2 className="text-3xl mb-4 text-stone-800 font-medium">空间分类设计 · {site.name}</h2>
+                                    <p className="text-lg text-stone-600 mb-8">
+                                        明代山水画空间设计古在实践中的应用
+                                    </p>
+                                    
+                                    <div className={`grid ${site.designImages.length > 1 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'} gap-6`}>
+                                        {site.designImages.map((image, index) => (
+                                            <motion.div
+                                                key={index}
+                                                className="relative rounded-2xl overflow-hidden shadow-xl cursor-pointer group"
+                                                whileHover={{ scale: 1.01 }}
+                                                onClick={() => {
+                                                    setCurrentExpandedImage(image);
+                                                    setIsImageExpanded(true);
+                                                }}
+                                            >
+                                                <img 
+                                                    src={image} 
+                                                    alt={`${site.name} 设计图 ${index + 1}`}
+                                                    className="w-full h-auto object-contain bg-white"
+                                                />
+                                                
+                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                                    <motion.div 
+                                                        className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur-sm px-5 py-3 rounded-full flex items-center gap-3"
+                                                        initial={{ scale: 0.8 }}
+                                                        whileHover={{ scale: 1 }}
+                                                    >
+                                                        <Maximize2 className="w-6 h-6 text-stone-700" />
+                                                        <span className="text-stone-700 text-lg">点击查看大图</span>
+                                                    </motion.div>
+                                                </div>
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </div>
+                    
+                    {isImageExpanded && (
+                        <motion.div
+                            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsImageExpanded(false)}
+                        >
+                            <button
+                                onClick={() => setIsImageExpanded(false)}
+                                className="absolute top-6 right-6 z-50 p-4 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full transition-colors"
+                            >
+                                <X className="w-7 h-7 text-white" />
+                            </button>
+                            
+                            <div className="absolute top-6 left-6 z-50 text-white">
+                                <h3 className="text-3xl mb-2">空间分类设计 · {site.name}</h3>
+                                <p className="text-xl text-white/70">明代山水画空间设计古在实践中的应用</p>
+                            </div>
+                            
+                            <motion.img
+                                src={currentExpandedImage}
+                                alt="设计图"
+                                className="max-w-full max-h-full object-contain"
+                                initial={{ scale: 0.9 }}
+                                animate={{ scale: 1 }}
+                                transition={{ duration: 0.3 }}
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        </motion.div>
+                    )}
+                </div>
+            );
+        }
+        
+        // 主应用组件
+        function App() {
+            const [currentPage, setCurrentPage] = useState('home');
+            const [selectedSite, setSelectedSite] = useState(null);
+            
+            const handleEnter = () => setCurrentPage('map');
+            const handleSiteClick = (siteId) => {
+                setSelectedSite(siteId);
+                setCurrentPage('detail');
+            };
+            const handleBack = () => {
+                setCurrentPage('map');
+                setSelectedSite(null);
+            };
+            
+            return (
+                <div className="app-container">
+                    <AnimatePresence mode="wait">
+                        {currentPage === 'home' && (
+                            <motion.div
+                                key="home"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.5 }}
+                            >
+                                <HomePage onEnter={handleEnter} />
+                            </motion.div>
+                        )}
+                        
+                        {currentPage === 'map' && (
+                            <motion.div
+                                key="map"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.5 }}
+                            >
+                                <MapPage onSiteClick={handleSiteClick} />
+                            </motion.div>
+                        )}
+                        
+                        {currentPage === 'detail' && selectedSite && (
+                            <motion.div
+                                key="detail"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.5 }}
+                            >
+                                <SiteDetail siteId={selectedSite} onBack={handleBack} />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            );
+        }
+        
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+    
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</body>
+</html>
