@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐱 宠物治愈 - 完整版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-pink: #FF69B4;
+            --light-pink: #FFB6D9;
+            --pale-pink: #FFE6F0;
+            --white: #FFFFFF;
+            --green: #4CAF50;
+            --light-green: #C8F0D8;
+            --dark-green: #2E7D32;
+            --yellow: #FFD700;
+            --orange: #FFA500;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            --shadow-strong: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--pale-pink) 0%, #FFD6E8 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            height: 100vh;
+            max-width: 774px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(135deg, var(--pale-pink) 0%, #FFD6E8 100%);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            border-radius: 30px;
+            overflow: hidden;
+        }
+
+        /* ========== 页面动画 ========== */
+        .screen {
+            display: none;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            animation: slideIn 0.5s ease-out;
+            top: 0;
+            left: 0;
+        }
+
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes scaleUp {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            25% { transform: translateY(-15px); }
+            50% { transform: translateY(0); }
+            75% { transform: translateY(-8px); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes glow {
+            0%, 100% { 
+                box-shadow: 0 0 10px rgba(255, 105, 180, 0.3),
+                           var(--shadow);
+            }
+            50% { 
+                box-shadow: 0 0 30px rgba(255, 105, 180, 0.6),
+                           var(--shadow-strong);
+            }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            25% { transform: scale(1.1); }
+            50% { transform: scale(1); }
+        }
+
+        /* ========== 按钮样式 ========== */
+        .btn {
+            padding: 12px 40px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.3);
+            transition: left 0.5s ease;
+            z-index: -1;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-strong);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #FF1493 0%, #FF69B4 100%);
+            color: white;
+            font-size: 18px;
+            padding: 14px 50px;
+            margin-top: 20px;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--green) 0%, var(--light-green) 100%);
+            color: white;
+            margin: 10px;
+        }
+
+        /* ========== 1. 起始页面 ========== */
+        #startScreen {
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 40px 30px;
+            gap: 30px;
+        }
+
+        .start-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .title-start {
+            font-size: 48px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #FF1493 0%, #FF69B4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: scaleUp 0.8s ease-out;
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .cat-intro {
+            width: 200px;
+            height: 200px;
+            background: white;
+            border-radius: 50%;
+            border: 6px solid var(--green);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 100px;
+            box-shadow: var(--shadow-strong);
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        .loading-bar {
+            width: 200px;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            border: 2px solid white;
+        }
+
+        .loading-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #FF69B4, var(--primary-pink), #FFB6D9);
+            background-size: 200% 100%;
+            width: 0%;
+            animation: loading 3s ease-out forwards, shimmer 2s ease-in-out infinite;
+            border-radius: 10px;
+        }
+
+        @keyframes loading {
+            0% { width: 0%; }
+            80% { width: 95%; }
+            100% { width: 100%; }
+        }
+
+        .loading-text {
+            font-size: 14px;
+            color: white;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.9);
+            max-width: 300px;
+            line-height: 1.6;
+        }
+
+        /* ========== 2. 首页主界面 ========== */
+        #homeScreen {
+            flex-direction: column;
+            padding: 0;
+        }
+
+        .header {
+            padding: 20px 30px;
+            text-align: center;
+            color: var(--primary-pink);
+            font-size: 28px;
+            font-weight: 700;
+            animation: slideIn 0.6s ease-out;
+        }
+
+        .cat-status-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            gap: 15px;
+        }
+
+        .cat-display {
+            width: 240px;
+            height: 240px;
+            background: white;
+            border-radius: 50%;
+            border: 8px solid var(--green);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 120px;
+            box-shadow: var(--shadow-strong);
+            animation: pulse 2s ease-in-out infinite;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cat-display::after {
+            content: '✨';
+            position: absolute;
+            font-size: 30px;
+            animation: float 3s ease-in-out infinite;
+            opacity: 0.5;
+        }
+
+        .status-bar {
+            width: 100%;
+            max-width: 280px;
+            padding: 0 20px;
+            animation: slideIn 0.7s ease-out;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            gap: 10px;
+            animation: slideIn 0.8s ease-out backwards;
+        }
+
+        .status-item:nth-child(1) { animation-delay: 0.1s; }
+        .status-item:nth-child(2) { animation-delay: 0.2s; }
+        .status-item:nth-child(3) { animation-delay: 0.3s; }
+
+        .status-label {
+            font-size: 14px;
+            color: #666;
+            width: 60px;
+            font-weight: 600;
+        }
+
+        .status-progress {
+            flex: 1;
+            height: 14px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+            border: 1px solid white;
+        }
+
+        .status-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-pink), var(--light-pink));
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .status-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 2s ease-in-out infinite;
+        }
+
+        .quick-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .quick-btn {
+            padding: 15px;
+            border: none;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: var(--shadow);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            text-align: center;
+            animation: scaleUp 0.6s ease-out backwards;
+        }
+
+        .quick-btn:nth-child(1) { animation-delay: 0.2s; }
+        .quick-btn:nth-child(2) { animation-delay: 0.3s; }
+        .quick-btn:nth-child(3) { animation-delay: 0.4s; }
+
+        .quick-btn-icon {
+            font-size: 32px;
+            transition: transform 0.3s ease;
+        }
+
+        .quick-btn:hover .quick-btn-icon {
+            transform: scale(1.2) rotate(10deg);
+        }
+
+        .quick-btn-feed {
+            background: linear-gradient(135deg, #FFA500, #FFB347);
+        }
+
+        .quick-btn-play {
+            background: linear-gradient(135deg, #4CAF50, #8BC34A);
+        }
+
+        .quick-btn-pet {
+            background: linear-gradient(135deg, #FF69B4, #FFB6D9);
+        }
+
+        .quick-btn:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-strong);
+        }
+
+        .quick-btn:active {
+            transform: translateY(-4px);
+        }
+
+        .nav-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            padding: 20px;
+        }
+
+        .nav-btn {
+            padding: 15px 20px;
+            border: 3px solid var(--green);
+            border-radius: 20px;
+            background: white;
+            color: var(--green);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--green);
+            transition: left 0.3s ease;
+            z-index: -1;
+        }
+
+        .nav-btn:hover::before {
+            left: 0;
+        }
+
+        .nav-btn:hover {
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-strong);
+        }
+
+        /* ========== 3. 日常互动界面 ========== */
+        #interactScreen {
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .back-button {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--primary-pink);
+            box-shadow: var(--shadow);
+            align-self: flex-start;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            transform: translateX(-5px);
+            box-shadow: var(--shadow-strong);
+        }
+
+        .title-section {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-pink);
+            text-align: center;
+            margin: 10px 0;
+            animation: scaleUp 0.6s ease-out;
+        }
+
+        .interact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .interact-card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: var(--shadow);
+            border: 3px solid transparent;
+            animation: scaleUp 0.5s ease-out backwards;
+        }
+
+        .interact-card:nth-child(1) { animation-delay: 0.1s; }
+        .interact-card:nth-child(2) { animation-delay: 0.15s; }
+        .interact-card:nth-child(3) { animation-delay: 0.2s; }
+        .interact-card:nth-child(4) { animation-delay: 0.25s; }
+        .interact-card:nth-child(5) { animation-delay: 0.3s; }
+        .interact-card:nth-child(6) { animation-delay: 0.35s; }
+
+        .interact-card:hover {
+            transform: translateY(-12px);
+            box-shadow: var(--shadow-strong);
+            border-color: var(--primary-pink);
+        }
+
+        .interact-icon {
+            font-size: 50px;
+            margin-bottom: 10px;
+            transition: transform 0.3s ease;
+        }
+
+        .interact-card:hover .interact-icon {
+            transform: scale(1.2) rotate(-15deg);
+        }
+
+        .interact-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* ========== 4. 食物选择 ========== */
+        .food-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .food-item {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: var(--shadow);
+            border: 3px solid transparent;
+        }
+
+        .food-item:hover {
+            transform: scale(1.08);
+            box-shadow: var(--shadow-strong);
+            border-color: #FFA500;
+        }
+
+        .food-icon {
+            font-size: 50px;
+            margin-bottom: 10px;
+            transition: transform 0.3s ease;
+        }
+
+        .food-item:hover .food-icon {
+            transform: scale(1.3) bounce;
+            animation: bounce 0.6s ease-in-out;
+        }
+
+        .food-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .feed-button {
+            width: 100%;
+            margin-top: 20px;
+            background: linear-gradient(135deg, #FFA500, #FFB347);
+            color: white;
+            padding: 15px;
+            border: none;
+            border-radius: 20px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .feed-button:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-strong);
+        }
+
+        .feed-button:active {
+            transform: translateY(-2px);
+        }
+
+        /* ========== 5. 故事页面 ========== */
+        .story-container {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+            animation: slideIn 0.6s ease-out;
+        }
+
+        .story-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary-pink);
+            text-align: center;
+            animation: scaleUp 0.6s ease-out;
+        }
+
+        .story-content {
+            font-size: 15px;
+            line-height: 1.8;
+            color: #555;
+            text-align: justify;
+            flex: 1;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .story-emoji {
+            font-size: 40px;
+            text-align: center;
+            margin: 10px 0;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .read-more-btn {
+            align-self: center;
+            background: linear-gradient(135deg, var(--green), var(--light-green));
+            color: white;
+            padding: 10px 30px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow);
+        }
+
+        .read-more-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-strong);
+        }
+
+        .chapter-progress {
+            text-align: center;
+            font-size: 13px;
+            color: #999;
+            margin-top: 10px;
+        }
+
+        /* ========== 6. 日记系统 ========== */
+        .diary-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .diary-entry {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: var(--shadow);
+            border-left: 5px solid var(--primary-pink);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            animation: slideIn 0.5s ease-out backwards;
+        }
+
+        .diary-entry:hover {
+            transform: translateX(5px);
+            box-shadow: var(--shadow-strong);
+        }
+
+        .diary-date {
+            font-size: 12px;
+            color: #999;
+            font-weight: 600;
+        }
+
+        .diary-content {
+            font-size: 14px;
+            color: #333;
+            margin-top: 5px;
+            line-height: 1.6;
+        }
+
+        .diary-mood {
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            color: var(--primary-pink);
+            font-weight: 600;
+        }
+
+        .add-diary-btn {
+            background: linear-gradient(135deg, var(--green), var(--light-green));
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow);
+            align-self: center;
+            margin-top: 15px;
+        }
+
+        .add-diary-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-strong);
+        }
+
+        /* ========== 7. 设置页面 ========== */
+        .setting-item {
+            background: white;
+            border-radius: 15px;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            animation: slideIn 0.5s ease-out backwards;
+        }
+
+        .setting-item:nth-child(2) { animation-delay: 0.1s; }
+        .setting-item:nth-child(3) { animation-delay: 0.15s; }
+        .setting-item:nth-child(4) { animation-delay: 0.2s; }
+        .setting-item:nth-child(5) { animation-delay: 0.25s; }
+        .setting-item:nth-child(6) { animation-delay: 0.3s; }
+
+        .setting-item:hover {
+            transform: translateX(5px);
+            box-shadow: var(--shadow-strong);
+        }
+
+        .setting-label {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .setting-icon {
+            font-size: 24px;
+            transition: transform 0.3s ease;
+        }
+
+        .setting-item:hover .setting-icon {
+            transform: scale(1.2) rotate(10deg);
+        }
+
+        .toggle-switch {
+            width: 50px;
+            height: 26px;
+            background: #ccc;
+            border-radius: 13px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .toggle-switch.active {
+            background: var(--green);
+            border-color: #1e5e20;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            top: 1px;
+            left: 1px;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-switch.active::after {
+            left: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .select-dropdown {
+            padding: 8px 15px;
+            border: 2px solid var(--green);
+            border-radius: 10px;
+            cursor: pointer;
+            background: white;
+            color: var(--green);
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .select-dropdown:hover {
+            background: var(--light-green);
+            color: #333;
+            transform: translateY(-2px);
+        }
+
+        /* ========== 互动反馈页面 ========== */
+        .feedback-screen {
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 40px;
+            gap: 30px;
+        }
+
+        .feedback-title {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #FF1493, #FF69B4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: scaleUp 0.6s ease-out;
+        }
+
+        .feedback-emoji {
+            font-size: 100px;
+            animation: bounce 1s ease-in-out infinite;
+        }
+
+        .feedback-text {
+            font-size: 18px;
+            color: var(--primary-pink);
+            font-weight: 600;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .value-increase {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--green);
+            animation: scaleUp 0.6s ease-out 0.3s both;
+        }
+
+        .arrow {
+            font-size: 32px;
+            animation: bounce 1s ease-in-out infinite;
+            animation-delay: 0.1s;
+        }
+
+        .continue-btn {
+            background: linear-gradient(135deg, var(--green), var(--light-green));
+            color: white;
+            padding: 12px 40px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow);
+            margin-top: 20px;
+        }
+
+        .continue-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-strong);
+        }
+
+        /* ========== 特殊场景动画 ========== */
+        #playScreen .cat-display {
+            font-size: 80px;
+            animation: bounce 0.6s ease-in-out infinite;
+        }
+
+        #petScreen .cat-display {
+            font-size: 80px;
+            animation: heartbeat 1.2s ease-in-out infinite;
+        }
+
+        /* ========== 模态框 ========== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 300px;
+            text-align: center;
+            box-shadow: var(--shadow-strong);
+            animation: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary-pink);
+            margin-bottom: 15px;
+        }
+
+        .modal-text {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .modal-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .modal-btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn-cancel {
+            background: #E0E0E0;
+            color: #333;
+        }
+
+        .modal-btn-cancel:hover {
+            background: #D0D0D0;
+            transform: translateY(-2px);
+        }
+
+        .modal-btn-confirm {
+            background: var(--green);
+            color: white;
+        }
+
+        .modal-btn-confirm:hover {
+            background: #388E3C;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        /* ========== 滚动条美化 ========== */
+        .screen::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .screen::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .screen::-webkit-scrollbar-thumb {
+            background: var(--primary-pink);
+            border-radius: 3px;
+        }
+
+        .screen::-webkit-scrollbar-thumb:hover {
+            background: #FF1493;
+        }
+
+        /* ========== 粒子效果 ========== */
+        .particle {
+            position: fixed;
+            pointer-events: none;
+        }
+
+        .particle::before {
+            content: '✨';
+            font-size: 24px;
+            animation: particle-float 2s ease-out forwards;
+        }
+
+        @keyframes particle-float {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) scale(0);
+                opacity: 0;
+            }
+        }
+
+        /* ========== 响应式 ========== */
+        @media (max-width: 600px) {
+            .container {
+                border-radius: 0;
+                max-width: 100%;
+            }
+
+            .title-start {
+                font-size: 36px;
+            }
+
+            .interact-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .quick-buttons {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .food-options {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 1. 起始页面 -->
+        <div class="screen active" id="startScreen">
+            <div class="start-container">
+                <div class="title-start">🐱 宠物治愈!</div>
+                <div class="cat-intro">😸</div>
+                <div style="font-size: 16px; color: white; max-width: 300px;">
+                    <div style="margin-bottom: 10px; font-weight: 600;">欢迎来到宠物治愈世界!</div>
+                    <div class="subtitle">照顾你的虚拟猫咪，获得幸福感和治愈!</div>
+                </div>
+                <div style="width: 200px; margin: 20px 0;">
+                    <div class="loading-bar">
+                        <div class="loading-progress"></div>
+                    </div>
+                    <div class="loading-text">加载中...</div>
+                </div>
+                <button class="btn btn-primary" onclick="goToScreen('homeScreen')">开始游戏</button>
+                <button class="btn btn-secondary" onclick="showTutorial()">查看教程</button>
+            </div>
+        </div>
+
+        <!-- 2. 首页主界面 -->
+        <div class="screen" id="homeScreen">
+            <div class="header">🐱 我的猫咪</div>
+            
+            <div class="cat-status-container">
+                <div class="cat-display">😸</div>
+                
+                <div class="status-bar">
+                    <div class="status-item">
+                        <span class="status-label">❤️ 幸福感</span>
+                        <div class="status-progress">
+                            <div class="status-fill" id="happinessBar" style="width: 70%;"></div>
+                        </div>
+                        <span style="font-size: 12px; color: var(--primary-pink); font-weight: 600;">70%</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">🐟 饱腹感</span>
+                        <div class="status-progress">
+                            <div class="status-fill" id="hungerBar" style="width: 50%; background: linear-gradient(90deg, #FFB347, #FFA500);"></div>
+                        </div>
+                        <span style="font-size: 12px; color: #FFA500; font-weight: 600;">50%</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">🧹 洁净度</span>
+                        <div class="status-progress">
+                            <div class="status-fill" id="cleanBar" style="width: 85%; background: linear-gradient(90deg, #4CAF50, #8BC34A);"></div>
+                        </div>
+                        <span style="font-size: 12px; color: var(--green); font-weight: 600;">85%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quick-buttons">
+                <button class="quick-btn quick-btn-feed" onclick="goToScreen('feedDetailScreen')">
+                    <div class="quick-btn-icon">🐟</div>
+                    <span>喂食</span>
+                </button>
+                <button class="quick-btn quick-btn-play" onclick="goToScreen('playScreen')">
+                    <div class="quick-btn-icon">🎾</div>
+                    <span>玩耍</span>
+                </button>
+                <button class="quick-btn quick-btn-pet" onclick="goToScreen('petScreen')">
+                    <div class="quick-btn-icon">👋</div>
+                    <span>抚摸</span>
+                </button>
+            </div>
+
+            <div class="nav-buttons">
+                <button class="nav-btn" onclick="goToScreen('interactScreen')">📱 日常互动</button>
+                <button class="nav-btn" onclick="goToScreen('storyScreen')">📖 治愈故事</button>
+                <button class="nav-btn" onclick="goToScreen('diaryScreen')">📝 日记系统</button>
+                <button class="nav-btn settings" onclick="goToScreen('settingsScreen')">⚙️ 设置</button>
+            </div>
+        </div>
+
+        <!-- 3. 日常互动界面 -->
+        <div class="screen" id="interactScreen">
+            <button class="back-button" onclick="goToScreen('homeScreen')">← 返回首页</button>
+            
+            <div class="title-section">日常互动</div>
+            
+            <div class="interact-grid">
+                <div class="interact-card" onclick="goToScreen('feedDetailScreen')">
+                    <div class="interact-icon">🍽️</div>
+                    <div class="interact-label">喂食</div>
+                </div>
+                <div class="interact-card" onclick="goToScreen('playScreen')">
+                    <div class="interact-icon">🎮</div>
+                    <div class="interact-label">玩耍</div>
+                </div>
+                <div class="interact-card" onclick="goToScreen('petScreen')">
+                    <div class="interact-icon">🤚</div>
+                    <div class="interact-label">抚摸</div>
+                </div>
+                <div class="interact-card" onclick="showFeedback('洗澡', '🛁', '洁净度', '+15')">
+                    <div class="interact-icon">🛁</div>
+                    <div class="interact-label">洗澡</div>
+                </div>
+                <div class="interact-card" onclick="showFeedback('睡眠', '😴', '能量', '+20')">
+                    <div class="interact-icon">😴</div>
+                    <div class="interact-label">睡眠</div>
+                </div>
+                <div class="interact-card" onclick="showFeedback('治疗', '💊', '幸福感', '+25')">
+                    <div class="interact-icon">💊</div>
+                    <div class="interact-label">治疗</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. 详细操作界面 - 喂食 -->
+        <div class="screen" id="feedDetailScreen">
+            <button class="back-button" onclick="goToScreen('homeScreen')">← 返回首页</button>
+            
+            <div class="title-section">选择食物</div>
+            
+            <div class="food-options">
+                <div class="food-item" onclick="selectFood('鱼片', '🐟')">
+                    <div class="food-icon">🐟</div>
+                    <div class="food-name">鱼片</div>
+                    <div style="font-size: 12px; color: #999;">+30 饱腹感</div>
+                </div>
+                <div class="food-item" onclick="selectFood('鸡肉', '🍗')">
+                    <div class="food-icon">🍗</div>
+                    <div class="food-name">鸡肉</div>
+                    <div style="font-size: 12px; color: #999;">+25 饱腹感</div>
+                </div>
+                <div class="food-item" onclick="selectFood('牛奶', '🥛')">
+                    <div class="food-icon">🥛</div>
+                    <div class="food-name">牛奶</div>
+                    <div style="font-size: 12px; color: #999;">+20 幸福感</div>
+                </div>
+                <div class="food-item" onclick="selectFood('零食', '🍖')">
+                    <div class="food-icon">🍖</div>
+                    <div class="food-name">零食</div>
+                    <div style="font-size: 12px; color: #999;">+15 幸福感</div>
+                </div>
+            </div>
+
+            <button class="feed-button" id="feedBtn" onclick="executeFeed()" style="display:none;">🍽️ 投喂</button>
+        </div>
+
+        <!-- 5. 治愈故事页面 -->
+        <div class="screen" id="storyScreen">
+            <button class="back-button" onclick="goToScreen('homeScreen')">← 返回首页</button>
+            
+            <div class="title-section">治愈故事</div>
+            
+            <div class="story-container">
+                <div class="story-title">😻 咪咪的快乐日常</div>
+                <div class="story-emoji">🐱 ❤️ 🌈</div>
+                <div class="story-content">
+                    咪咪每天都过得很快乐。清晨的第一缕阳光照进房间，它就会用小爪子轻轻拨醒主人，然后享受一顿美味的早餐。<br><br>
+                    白天，咪咪喜欢在阳台上晒太阳，或者追逐着玩具球跑来跑去，每一个动作都充满了活力和幸福。它的眼睛闪闪发光，尾巴摇摇摆摆，用最纯真的方式诠释什么是快乐。<br><br>
+                    当主人开始工作时，咪咪会跳上键盘，踩踏着键盘键，似乎在说："工作再重要，也不如我们一起玩耍重要。"那一刻，再多的烦恼都消散了。<br><br>
+                    晚上，当主人悉完一天的劳累，咪咪会依偎在主人怀里，发出舒服的呼噜声。这是咪咪最幸福的时刻，也是主人最治愈的时刻。<br><br>
+                    在爱的陪伴下，咪咪的每一天都充满了治愈和温暖。每一个瞬间都是珍贵的回忆。
+                </div>
+                <button class="read-more-btn" onclick="alert('更多精彩故事敬请期待... 📖✨')">阅读更多</button>
+                <div class="chapter-progress">第1章 / 共5章</div>
+            </div>
+        </div>
+
+        <!-- 6. 日记系统页面 -->
+        <div class="screen" id="diaryScreen">
+            <button class="back-button" onclick="goToScreen('homeScreen')">← 返回首页</button>
+            
+            <div class="title-section">我的日记</div>
+            
+            <div class="diary-container">
+                <div class="diary-entry">
+                    <div class="diary-date">2024-10-26</div>
+                    <div class="diary-content">今天喂了猫咪，它开心地吃了一顿大餐，幸福感指数直线上升!</div>
+                    <div class="diary-mood">😊 心情不错</div>
+                </div>
+                <div class="diary-entry">
+                    <div class="diary-date">2024-10-25</div>
+                    <div class="diary-content">和猫咪玩了毛线球，看着它蹦蹦跳跳的样子，我的心都融化了。</div>
+                    <div class="diary-mood">😄 超开心</div>
+                </div>
+                <div class="diary-entry">
+                    <div class="diary-date">2024-10-24</div>
+                    <div class="diary-content">为猫咪做了一个温暖的小窝，它蜷缩在里面睡得很香甜。</div>
+                    <div class="diary-mood">😊 心情不错</div>
+                </div>
+                <div class="diary-entry">
+                    <div class="diary-date">2024-10-23</div>
+                    <div class="diary-content">今天抚摸了猫咪，它发出了满足的呼噜声，生活就该如此简单美好。</div>
+                    <div class="diary-mood">😍 幸福满满</div>
+                </div>
+            </div>
+            
+            <button class="add-diary-btn" onclick="showAddDiaryModal()">➕ 添加新日记</button>
+        </div>
+
+        <!-- 7. 设置页面 -->
+        <div class="screen" id="settingsScreen">
+            <button class="back-button" onclick="goToScreen('homeScreen')">← 返回首页</button>
+            
+            <div class="title-section">设置</div>
+            
+            <div style="padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+                <div class="setting-item">
+                    <span class="setting-label">
+                        <span class="setting-icon">🔊</span>
+                        <span>音效开关</span>
+                    </span>
+                    <div class="toggle-switch active" onclick="toggleSetting(this)"></div>
+                </div>
+                
+                <div class="setting-item">
+                    <span class="setting-label">
+                        <span class="setting-icon">🔔</span>
+                        <span>通知设置</span>
+                    </span>
+                    <div class="toggle-switch active" onclick="toggleSetting(this)"></div>
+                </div>
+                
+                <div class="setting-item">
+                    <span class="setting-label">
+                        <span class="setting-icon">☀️</span>
+                        <span>亮度调整</span>
+                    </span>
+                    <select class="select-dropdown" onchange="changeBrightness(this.value)">
+                        <option value="normal">标准</option>
+                        <option value="bright">明亮</option>
+                        <option value="dark">暗色</option>
+                    </select>
+                </div>
+                
+                <div class="setting-item">
+                    <span class="setting-label">
+                        <span class="setting-icon">🌍</span>
+                        <span>语言选择</span>
+                    </span>
+                    <select class="select-dropdown" onchange="changeLanguage(this.value)">
+                        <option value="zh">中文</option>
+                        <option value="en">English</option>
+                        <option value="ja">日本語</option>
+                    </select>
+                </div>
+
+                <div class="setting-item">
+                    <span class="setting-label">
+                        <span class="setting-icon">💾</span>
+                        <span>关于</span>
+                    </span>
+                    <button class="btn btn-secondary" style="padding: 8px 15px; font-size: 12px;" onclick="alert('🐱 宠物治愈 v1.0\\n\\n一款治愈系宠物互动游戏\\n照顾虚拟猫咪获得幸福感\\n\\n©2024 治愈工作室')">查看</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. 玩耍场景 -->
+        <div class="screen feedback-screen" id="playScreen">
+            <button class="back-button" style="position: absolute; top: 20px; left: 20px;" onclick="goToScreen('homeScreen')">← 返回</button>
+            
+            <div class="feedback-emoji">🐱</div>
+            <div class="feedback-title">玩耍中...</div>
+            <div class="feedback-text">猫咪玩得超开心!</div>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 24px;">
+                <span>快乐值</span>
+                <span class="arrow">⬆️</span>
+            </div>
+            <div class="value-increase">快乐值 UP UP UP</div>
+            <button class="continue-btn" onclick="goToScreen('homeScreen'); updateStats(20, -5, 0);">继续</button>
+        </div>
+
+        <!-- 9. 抚摸场景 -->
+        <div class="screen feedback-screen" id="petScreen">
+            <button class="back-button" style="position: absolute; top: 20px; left: 20px;" onclick="goToScreen('homeScreen')">← 返回</button>
+            
+            <div class="feedback-emoji">😻</div>
+            <div class="feedback-title">被抚摸后...</div>
+            <div class="feedback-text">猫咪感到很幸福!</div>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 24px;">
+                <span>幸福感</span>
+                <span class="arrow">⬆️</span>
+            </div>
+            <div class="value-increase">幸福感 UP UP UP</div>
+            <button class="continue-btn" onclick="goToScreen('homeScreen'); updateStats(25, 0, 0);">继续</button>
+        </div>
+
+        <!-- 投喂成功反馈 -->
+        <div class="screen feedback-screen" id="feedbackScreen">
+            <button class="back-button" style="position: absolute; top: 20px; left: 20px;" onclick="goToScreen('homeScreen')">← 返回</button>
+            
+            <div class="feedback-emoji" id="feedbackEmoji">😸</div>
+            <div class="feedback-title" id="feedbackTitle">投喂成功!</div>
+            <div class="feedback-text" id="feedbackText">猫咪吃得很开心!</div>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 24px;">
+                <span id="feedbackType">饱腹感</span>
+                <span class="arrow">⬆️</span>
+            </div>
+            <div class="value-increase" id="feedbackValue">+30</div>
+            <button class="continue-btn" onclick="goToScreen('homeScreen');">继续</button>
+        </div>
+    </div>
+
+    <!-- 添加日记对话框 -->
+    <div class="modal" id="diaryModal">
+        <div class="modal-content">
+            <div class="modal-title">📝 添加新日记</div>
+            <textarea id="diaryInput" placeholder="记录今天与猫咪的故事..." style="width: 100%; height: 100px; padding: 10px; border: 2px solid #FFB6D9; border-radius: 10px; font-family: inherit; font-size: 14px; resize: none; margin-bottom: 15px; font-weight: 500;"></textarea>
+            <div style="display: flex; gap: 8px; margin-bottom: 15px; justify-content: center;">
+                <span class="mood-selector" style="cursor: pointer; padding: 8px; border: 2px solid #FFD700; border-radius: 8px; background: #FFFACD; font-size: 20px;" onclick="selectMood('😊')">😊</span>
+                <span class="mood-selector" style="cursor: pointer; padding: 8px; border: 2px solid #FFD700; border-radius: 8px; background: #FFFACD; font-size: 20px;" onclick="selectMood('😄')">😄</span>
+                <span class="mood-selector" style="cursor: pointer; padding: 8px; border: 2px solid #FFD700; border-radius: 8px; background: #FFFACD; font-size: 20px;" onclick="selectMood('😍')">😍</span>
+                <span class="mood-selector" style="cursor: pointer; padding: 8px; border: 2px solid #FFD700; border-radius: 8px; background: #FFFACD; font-size: 20px;" onclick="selectMood('😴')">😴</span>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-cancel" onclick="closeDiaryModal()">取消</button>
+                <button class="modal-btn modal-btn-confirm" onclick="saveDiary()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 教程对话框 -->
+    <div class="modal" id="tutorialModal">
+        <div class="modal-content" style="max-width: 350px;">
+            <div class="modal-title">🎮 游戏教程</div>
+            <div class="modal-text" style="text-align: left; line-height: 1.8; color: #666;">
+                <strong>📌 基本玩法:</strong><br>
+                1️⃣ 喂食猫咪维持饱腹感<br>
+                2️⃣ 与猫咪玩耍增加快乐值<br>
+                3️⃣ 抚摸猫咪提升幸福感<br><br>
+                
+                <strong>💡 小贴士:</strong><br>
+                • 定期互动可获得更多奖励<br>
+                • 记录日记获得治愈感<br>
+                • 解锁故事获得新内容<br><br>
+                
+                <strong>🎁 功能介绍:</strong><br>
+                • 日常互动: 多种互动选项<br>
+                • 治愈故事: 温馨感人故事<br>
+                • 日记系统: 记录美好时刻<br>
+                • 设置: 个性化体验
+            </div>
+            <button class="modal-btn modal-btn-confirm" onclick="closeTutorialModal()" style="width: 100%; margin-top: 15px;">开始游戏</button>
+        </div>
+    </div>
+
+    <script>
+        // 游戏状态
+        let gameState = {
+            happiness: 70,
+            hunger: 50,
+            clean: 85,
+            selectedFood: null,
+            selectedMood: '😊'
+        };
+
+        // 导航到指定屏幕
+        function goToScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById(screenId).classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        // 显示教程
+        function showTutorial() {
+            document.getElementById('tutorialModal').classList.add('active');
+        }
+
+        function closeTutorialModal() {
+            document.getElementById('tutorialModal').classList.remove('active');
+            goToScreen('homeScreen');
+        }
+
+        // 选择食物
+        function selectFood(name, emoji) {
+            gameState.selectedFood = { name, emoji };
+            document.getElementById('feedBtn').style.display = 'block';
+            document.querySelectorAll('.food-item').forEach(item => {
+                item.style.opacity = '0.5';
+            });
+            event.target.closest('.food-item').style.opacity = '1';
+        }
+
+        // 执行喂食
+        function executeFeed() {
+            if (gameState.selectedFood) {
+                gameState.hunger = Math.min(100, gameState.hunger + 30);
+                gameState.happiness = Math.min(100, gameState.happiness + 10);
+                showFeedback(gameState.selectedFood.name, gameState.selectedFood.emoji, '饱腹感', '+30');
+            }
+        }
+
+        // 显示反馈
+        function showFeedback(title, emoji, type, value) {
+            document.getElementById('feedbackTitle').innerText = title;
+            document.getElementById('feedbackEmoji').innerText = emoji;
+            document.getElementById('feedbackType').innerText = type;
+            document.getElementById('feedbackValue').innerText = value;
+            goToScreen('feedbackScreen');
+        }
+
+        // 更新状态条
+        function updateStats(happinessAdd = 0, hungerAdd = 0, cleanAdd = 0) {
+            gameState.happiness = Math.min(100, gameState.happiness + happinessAdd);
+            gameState.hunger = Math.min(100, gameState.hunger + hungerAdd);
+            gameState.clean = Math.min(100, gameState.clean + cleanAdd);
+            
+            document.getElementById('happinessBar').style.width = gameState.happiness + '%';
+            document.getElementById('hungerBar').style.width = gameState.hunger + '%';
+            document.getElementById('cleanBar').style.width = gameState.clean + '%';
+        }
+
+        // 日记功能
+        function showAddDiaryModal() {
+            document.getElementById('diaryModal').classList.add('active');
+            document.getElementById('diaryInput').focus();
+        }
+
+        function closeDiaryModal() {
+            document.getElementById('diaryModal').classList.remove('active');
+            document.getElementById('diaryInput').value = '';
+        }
+
+        function selectMood(mood) {
+            gameState.selectedMood = mood;
+            document.querySelectorAll('.mood-selector').forEach(el => {
+                el.style.borderColor = '#FFD700';
+                el.style.background = '#FFFACD';
+            });
+            event.target.style.borderColor = '#FF69B4';
+            event.target.style.background = '#FFE6F0';
+        }
+
+        function saveDiary() {
+            const content = document.getElementById('diaryInput').value;
+            if (content.trim()) {
+                alert('日记已保存! 💝');
+                closeDiaryModal();
+                updateStats(5, 0, 0);
+            } else {
+                alert('请输入日记内容');
+            }
+        }
+
+        // 设置功能
+        function toggleSetting(element) {
+            element.classList.toggle('active');
+        }
+
+        function changeBrightness(value) {
+            const container = document.querySelector('.container');
+            if (value === 'bright') {
+                container.style.filter = 'brightness(1.2)';
+            } else if (value === 'dark') {
+                container.style.filter = 'brightness(0.8)';
+            } else {
+                container.style.filter = 'brightness(1)';
+            }
+        }
+
+        function changeLanguage(value) {
+            const langs = { zh: '中文', en: 'English', ja: '日本語' };
+            alert('已切换到: ' + langs[value]);
+        }
+
+        // 点击模态框外部关闭
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'diaryModal') closeDiaryModal();
+            if (e.target.id === 'tutorialModal') closeTutorialModal();
+        });
+
+        // 定期饱腹感下降
+        setInterval(() => {
+            gameState.hunger = Math.max(0, gameState.hunger - 1);
+            if (document.getElementById('homeScreen').classList.contains('active')) {
+                document.getElementById('hungerBar').style.width = gameState.hunger + '%';
+            }
+        }, 30000);
+    </script>
+</body>
+</html>
